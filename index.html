@@ -1,0 +1,498 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dino Jump Evolution</title>
+
+<style>
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background: linear-gradient(135deg,#10152f,#35216b,#10152f);
+  color: white;
+  text-align: center;
+  min-height: 100vh;
+  padding: 15px;
+}
+
+h1 {
+  margin: 12px;
+  color: #ffe45c;
+  text-shadow: 0 0 15px #ff8c00;
+}
+
+.container {
+  max-width: 850px;
+  margin: auto;
+}
+
+.stats {
+  display: flex;
+  justify-content: space-around;
+  gap: 8px;
+  margin: 15px 0;
+}
+
+.stat {
+  background: #252b55;
+  border: 1px solid #777cff;
+  border-radius: 12px;
+  padding: 12px;
+  flex: 1;
+}
+
+.game {
+  position: relative;
+  height: 300px;
+  overflow: hidden;
+  border: 3px solid #8c7cff;
+  border-radius: 18px;
+  background: linear-gradient(#55c5ff,#c7f3ff);
+  box-shadow: 0 0 25px #655cff;
+  touch-action: manipulation;
+}
+
+.cloud {
+  position: absolute;
+  font-size: 35px;
+  animation: cloudMove 12s linear infinite;
+}
+
+.cloud:nth-child(1) {top: 25px;}
+.cloud:nth-child(2) {top: 85px; animation-delay: -6s;}
+
+@keyframes cloudMove {
+  from {left: 100%;}
+  to {left: -100px;}
+}
+
+.sun {
+  position: absolute;
+  top: 18px;
+  right: 45px;
+  font-size: 45px;
+  animation: sunGlow 2s infinite alternate;
+}
+
+@keyframes sunGlow {
+  to {filter: drop-shadow(0 0 20px orange);}
+}
+
+.ground {
+  position: absolute;
+  bottom: 0;
+  height: 48px;
+  width: 100%;
+  background: repeating-linear-gradient(
+    90deg,#238c39 0 30px,#35b94a 30px 60px
+  );
+  border-top: 5px solid #a4ec67;
+}
+
+.dino {
+  position: absolute;
+  left: 65px;
+  bottom: 42px;
+  font-size: 58px;
+  z-index: 5;
+  transition: filter .2s;
+}
+
+.jump {
+  animation: jump .65s ease-out;
+}
+
+@keyframes jump {
+  0%,100% {bottom:42px;}
+  45% {bottom:155px;}
+}
+
+.obstacle {
+  position: absolute;
+  bottom: 43px;
+  right: -60px;
+  font-size: 45px;
+  z-index: 5;
+}
+
+.coin {
+  position: absolute;
+  bottom: 110px;
+  right: -60px;
+  font-size: 30px;
+  animation: coinSpin .7s infinite alternate;
+}
+
+@keyframes coinSpin {
+  to {transform: rotateY(180deg) scale(1.15);}
+}
+
+.panel {
+  background: #252b55;
+  padding: 15px;
+  margin-top: 15px;
+  border-radius: 15px;
+}
+
+button {
+  background: linear-gradient(135deg,#ffb52e,#ff6b35);
+  color: white;
+  border: none;
+  padding: 12px 18px;
+  margin: 5px;
+  border-radius: 10px;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+button:active {
+  transform: scale(.94);
+}
+
+.skins {
+  display: grid;
+  grid-template-columns: repeat(5,1fr);
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.skin {
+  background: #394078;
+  border: 2px solid #777cff;
+  padding: 10px 3px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.skin span {
+  font-size: 30px;
+  display: block;
+}
+
+.skin small {
+  font-size: 11px;
+}
+
+.selected {
+  border-color: #ffe45c;
+  background: #6655a8;
+}
+
+#message {
+  margin: 12px;
+  color: #ffe45c;
+  font-weight: bold;
+}
+
+@media(max-width:450px) {
+  .game {height:260px;}
+  .skins {grid-template-columns:repeat(5,1fr);}
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>🦖 DINO JUMP EVOLUTION</h1>
+<p>Hindari rintangan dan kumpulkan koin!</p>
+
+<div class="stats">
+  <div class="stat">🏆<br>Skor: <b id="score">0</b></div>
+  <div class="stat">💰<br>Koin: <b id="coins">0</b></div>
+  <div class="stat">⭐<br>Rekor: <b id="best">0</b></div>
+</div>
+
+<div class="game" id="game">
+
+<div class="cloud">☁️</div>
+<div class="cloud">☁️</div>
+<div class="sun">☀️</div>
+
+<div class="dino" id="dino">🦖</div>
+<div class="ground"></div>
+
+<div id="message">Tekan MULAI untuk bermain!</div>
+
+</div>
+
+<div class="panel">
+  <button onclick="startGame()">▶ MULAI</button>
+  <button onclick="jump()">⬆ LOMPAT</button>
+  <button onclick="restartGame()">🔄 ULANG</button>
+</div>
+
+<div class="panel">
+<h3>🎨 TOKO SKIN DINO</h3>
+<p>Pilih skin kesukaanmu!</p>
+<div class="skins" id="skins"></div>
+</div>
+
+</div>
+
+<script>
+const game = document.getElementById("game");
+const dino = document.getElementById("dino");
+
+let score = 0;
+let coins = 0;
+let best = Number(localStorage.getItem("dinoBest")) || 0;
+let running = false;
+let jumping = false;
+let speed = 5;
+let obstacleTimer;
+let coinTimer;
+let gameLoop;
+let selectedSkin = 0;
+
+const skinList = [
+  {emoji:"🦖",name:"Classic",price:0},
+  {emoji:"🐲",name:"Dragon",price:20},
+  {emoji:"🦕",name:"Dino Blue",price:30},
+  {emoji:"🐉",name:"Fire",price:40},
+  {emoji:"👾",name:"Alien",price:50},
+  {emoji:"🐊",name:"Croc",price:60},
+  {emoji:"🦎",name:"Lizard",price:70},
+  {emoji:"🐸",name:"Frog",price:80},
+  {emoji:"🤖",name:"Robot",price:100},
+  {emoji:"👑",name:"King",price:150}
+];
+
+let owned = [0];
+
+document.getElementById("best").textContent = best;
+
+function renderSkins() {
+  const box = document.getElementById("skins");
+  box.innerHTML = "";
+
+  skinList.forEach((skin,index) => {
+    const div = document.createElement("div");
+    div.className = "skin" +
+      (selectedSkin === index ? " selected" : "");
+
+    div.innerHTML = `
+      <span>${skin.emoji}</span>
+      <small>${skin.name}</small><br>
+      <small>${owned.includes(index) ? "DIMILIKI" :
+      "💰 "+skin.price}</small>
+    `;
+
+    div.onclick = () => chooseSkin(index);
+    box.appendChild(div);
+  });
+}
+
+function chooseSkin(index) {
+  const skin = skinList[index];
+
+  if(!owned.includes(index)) {
+    if(coins < skin.price) {
+      alert("Koin belum cukup!");
+      return;
+    }
+
+    coins -= skin.price;
+    owned.push(index);
+    updateStats();
+  }
+
+  selectedSkin = index;
+  dino.textContent = skin.emoji;
+  renderSkins();
+}
+
+function updateStats() {
+  document.getElementById("score").textContent = score;
+  document.getElementById("coins").textContent = coins;
+  document.getElementById("best").textContent = best;
+}
+
+function startGame() {
+  if(running) return;
+
+  running = true;
+  score = 0;
+  speed = 5;
+
+  document.getElementById("message").textContent = "";
+
+  obstacleTimer = setInterval(createObstacle,1400);
+  coinTimer = setInterval(createCoin,2200);
+
+  gameLoop = setInterval(updateGame,50);
+  updateStats();
+}
+
+function jump() {
+  if(!running || jumping) return;
+
+  jumping = true;
+  dino.classList.remove("jump");
+  void dino.offsetWidth;
+  dino.classList.add("jump");
+
+  setTimeout(() => {
+    jumping = false;
+    dino.classList.remove("jump");
+  },650);
+}
+
+function createObstacle() {
+  if(!running) return;
+
+  const obstacle = document.createElement("div");
+  obstacle.className = "obstacle";
+  obstacle.textContent = Math.random() > .5 ? "🌵" : "🪨";
+  game.appendChild(obstacle);
+
+  let pos = game.clientWidth;
+
+  const move = setInterval(() => {
+    if(!running) {
+      clearInterval(move);
+      obstacle.remove();
+      return;
+    }
+
+    pos -= speed;
+    obstacle.style.left = pos + "px";
+
+    const dinoRect = dino.getBoundingClientRect();
+    const obsRect = obstacle.getBoundingClientRect();
+
+    if(
+      dinoRect.right > obsRect.left + 8 &&
+      dinoRect.left < obsRect.right - 8 &&
+      dinoRect.bottom > obsRect.top + 12
+    ) {
+      clearInterval(move);
+      endGame();
+    }
+
+    if(pos < -60) {
+      clearInterval(move);
+      obstacle.remove();
+    }
+  },20);
+}
+
+function createCoin() {
+  if(!running) return;
+
+  const coin = document.createElement("div");
+  coin.className = "coin";
+  coin.textContent = "🪙";
+  game.appendChild(coin);
+
+  let pos = game.clientWidth;
+
+  const move = setInterval(() => {
+    if(!running) {
+      clearInterval(move);
+      coin.remove();
+      return;
+    }
+
+    pos -= speed;
+    coin.style.left = pos + "px";
+
+    const a = dino.getBoundingClientRect();
+    const b = coin.getBoundingClientRect();
+
+    if(
+      a.right > b.left &&
+      a.left < b.right &&
+      a.bottom > b.top &&
+      a.top < b.bottom
+    ) {
+      coins++;
+      coin.remove();
+      clearInterval(move);
+      updateStats();
+      return;
+    }
+
+    if(pos < -40) {
+      coin.remove();
+      clearInterval(move);
+    }
+  },20);
+}
+
+function updateGame() {
+  if(!running) return;
+
+  score++;
+  speed = Math.min(11,5 + score/400);
+
+  if(score > best) {
+    best = score;
+    localStorage.setItem("dinoBest",best);
+  }
+
+  updateStats();
+}
+
+function endGame() {
+  if(!running) return;
+
+  running = false;
+  clearInterval(gameLoop);
+  clearInterval(obstacleTimer);
+  clearInterval(coinTimer);
+
+  document.getElementById("message").textContent =
+    "GAME OVER! Skor kamu: " + score;
+}
+
+function restartGame() {
+  running = false;
+
+  clearInterval(gameLoop);
+  clearInterval(obstacleTimer);
+  clearInterval(coinTimer);
+
+  document.querySelectorAll(".obstacle,.coin").forEach(
+    el => el.remove()
+  );
+
+  score = 0;
+  jumping = false;
+  dino.classList.remove("jump");
+
+  updateStats();
+
+  document.getElementById("message").textContent =
+    "Siap? Tekan MULAI!";
+
+  startGame();
+}
+
+game.addEventListener("pointerdown", (e) => {
+  if(e.target === game) jump();
+});
+
+document.addEventListener("keydown", (e) => {
+  if(e.code === "Space" || e.code === "ArrowUp") {
+    e.preventDefault();
+    jump();
+  }
+});
+
+renderSkins();
+updateStats();
+</script>
+
+</body>
+</html>
+
